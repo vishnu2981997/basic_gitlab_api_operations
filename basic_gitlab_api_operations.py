@@ -1,5 +1,20 @@
-import requests
+"""
+Basic git lab GET operations using gitlab APIs and python
+
+Supports :
+
+1. user id based on user name upon object creation
+2. user projects
+3. project id based on project name
+4. branches based on project name
+5. project files based on project id
+6. file content based on project id and file path
+
+"""
 import functools
+import urllib.parse
+
+import requests
 
 
 def handle_exception(function):
@@ -23,6 +38,7 @@ class ErrorHandler(type):
     """
 
     """
+
     def __new__(mcs, name, bases, dct):
         """
 
@@ -106,10 +122,19 @@ class GitLab:
             else:
                 break
             if data:
-                for i in data:
-                    if i["username"] == self.user_name:
-                        self._user_id = i["id"]
+                data_len = len(data)
+                if data_len == 1:
+                    if data[0]["username"] == self.user_name:
+                        self._user_id = data[0]["id"]
                         break
+                else:
+                    for i in range(-(data_len // 2)):
+                        if data[i]["username"] == self.user_name:
+                            self._user_id = data[i]["id"]
+                            break
+                        if data[data_len - i]["username"] == self.user_name:
+                            self._user_id = data[data_len - i]["id"]
+                            break
                 page += 1
             else:
                 break
@@ -169,9 +194,19 @@ class GitLab:
                 break
             if not data:
                 break
-            for i in data:
-                if i["name"] == project_name:
-                    project_id = i["id"]
+            data_len = len(data)
+            if data_len == 1:
+                if data[0]["name"] == project_name:
+                    project_id = data[0]["id"]
+                    break
+            else:
+                for i in range(-(data_len // 2)):
+                    if data[i]["name"] == project_name:
+                        project_id = data[i]["id"]
+                        break
+                    if data[data_len - i]["name"] == project_name:
+                        project_id = data[data_len - i]["id"]
+                        break
             page += 1
 
         return project_id
@@ -247,8 +282,7 @@ class GitLab:
             'Private-Token': self.access_token,
             "Content-Type": "application/json"
         }
-        path = path.replace("/", "%2F")
-        path = path.replace(".", "%2E")
+        path = urllib.parse.quote(path, safe="")
         url = api.format(project_id, path, branch)
         data = requests.get(url=url, headers=headers)
         if data.ok:
