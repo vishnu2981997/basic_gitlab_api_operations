@@ -12,9 +12,14 @@ Supports :
 
 """
 import functools
-import urllib.parse
+import sys
 
 import requests
+
+if sys.version_info.major == 3:
+    import urllib.parse as parser
+else:
+    import urllib as parser
 
 
 def handle_exception(function):
@@ -64,6 +69,7 @@ class GitLab:
         self._access_token = access_token
         self._user_id = None
         self._api_url = "https://gitlab.com/api/v4/"
+        x = sys.version_info
 
     @property
     def user_name(self):
@@ -319,7 +325,7 @@ class GitLab:
             'Private-Token': self.access_token,
             "Content-Type": "application/json"
         }
-        path = urllib.parse.quote(path, safe="")
+        path = parser.quote(path, safe="")
         url = api.format(project_id, path, branch)
         data = requests.get(url=url, headers=headers)
         if data.ok:
