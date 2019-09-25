@@ -69,7 +69,6 @@ class GitLab:
         self._access_token = access_token
         self._user_id = None
         self._api_url = "https://gitlab.com/api/v4/"
-        x = sys.version_info
 
     @property
     def user_name(self):
@@ -114,36 +113,18 @@ class GitLab:
         Gets user id based on the given user_name upon object creation
         :return: user id of type int
         """
-        page = 1
-        api = self.api_url + "search?scope=users&search={0}&per_page=100&page={1}"
+        api = self.api_url + "user"
+        url = api
         headers = {
             'Private-Token': self.access_token,
             "Content-Type": "application/json"
         }
-        while not self.user_id:
-            url = api.format(self.user_name, page)
-            data = requests.get(url=url, headers=headers)
-            if data.ok:
-                data = data.json()
-            else:
-                break
-            if data:
-                data_len = len(data)
-                if data_len == 1:
-                    if data[0]["username"] == self.user_name:
-                        self._user_id = data[0]["id"]
-                        break
-                else:
-                    for i in range(-(data_len // 2)):
-                        if data[i]["username"] == self.user_name:
-                            self._user_id = data[i]["id"]
-                            break
-                        if data[data_len - i]["username"] == self.user_name:
-                            self._user_id = data[data_len - i]["id"]
-                            break
-                page += 1
-            else:
-                break
+        data = requests.get(url=url, headers=headers)
+        if data.ok:
+            data = data.json()
+            self._user_id = data["id"]
+        else:
+            self._user_id = data.json()
 
         return self._user_id
 
@@ -154,6 +135,8 @@ class GitLab:
         """
         if not self.user_id:
             self.get_user_id()
+        if type(self.user_id).__name__ == "dict":
+            return self.user_id
         projects = []
         page = 1
         api = self.api_url + "users/{0}/projects?page_size=100&page={1}"
@@ -184,6 +167,8 @@ class GitLab:
         """
         if not self.user_id:
             self.get_user_id()
+        if type(self.user_id).__name__ == "dict":
+            return self.user_id
         project_id = None
         page = 1
         api = self.api_url + "users/{0}/projects?search={1}&page_size=100&page={2}"
@@ -223,6 +208,10 @@ class GitLab:
         :param project_id: integer containing project id
         :return: array of dictionaries containing branch details
         """
+        if not self.user_id:
+            self.get_user_id()
+        if type(self.user_id).__name__ == "dict":
+            return self.user_id
         branches = []
         page = 1
         api = self.api_url + "projects/{0}/repository/branches?page_size=100&page={1}"
@@ -252,6 +241,10 @@ class GitLab:
         :param branch: string containing the branch name from which the files are to be fetched
         :return: array of dictionaries containing details regarding project files
         """
+        if not self.user_id:
+            self.get_user_id()
+        if type(self.user_id).__name__ == "dict":
+            return self.user_id
         project_files = []
         page = 1
         api = self.api_url + "projects/{0}/repository/tree?ref={1}&recursive=1&per_page=100&page={2}"
@@ -282,25 +275,11 @@ class GitLab:
         :param branch: string containing the branch name from which the files are to be fetched
         :return: array of dictionaries containing details regarding project files
         """
-        project_files = []
-        page = 1
-        api = self.api_url + "projects/{0}/repository/tree?ref={1}&recursive=1&per_page=100&page={2}"
-        headers = {
-            'Private-Token': self.access_token,
-            "Content-Type": "application/json"
-        }
-        while True:
-            url = api.format(project_id, branch, page)
-            data = requests.get(url=url, headers=headers)
-            if data.ok:
-                data = data.json()
-            else:
-                break
-            if data:
-                project_files += data
-            else:
-                break
-            page += 1
+        if not self.user_id:
+            self.get_user_id()
+        if type(self.user_id).__name__ == "dict":
+            return self.user_id
+        project_files = self.get_all_project_files(project_id=project_id, branch=branch)
 
         files = []
         path = path.strip("/")
@@ -319,6 +298,10 @@ class GitLab:
         :param branch: string containing the branch name from which the files are to be fetched
         :return: string containing raw file data
         """
+        if not self.user_id:
+            self.get_user_id()
+        if type(self.user_id).__name__ == "dict":
+            return self.user_id
         project_file_raw = None
         api = self.api_url + "projects/{0}/repository/files/{1}/raw?ref={2}"
         headers = {
@@ -338,10 +321,10 @@ class GitLab:
 
 def main():
     """
-
-    :return:
+    main
+    :return: None
     """
-    gl = GitLab(user_name="vishnu2981997", access_token="access_token")
+    gl = GitLab(user_name="vishnu2981997", access_token="V7jVuqNWUssibj4gF4j6")
     user_id = gl.get_user_id()
     projects = gl.get_user_projects()
     project_id = gl.get_project_id(project_name="wasup_bro")
