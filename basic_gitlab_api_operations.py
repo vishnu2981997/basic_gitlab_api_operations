@@ -55,7 +55,7 @@ class ErrorHandler(type):
 
 class GitLab:
     """
-
+    GitLab GET APIs operations
     """
     __metaclass__ = ErrorHandler
 
@@ -105,8 +105,8 @@ class GitLab:
 
     def get_user_id(self):
         """
-
-        :return:
+        Gets user id based on the given user_name upon object creation
+        :return: user id of type int
         """
         page = 1
         api = self.api_url + "search?scope=users&search={0}&per_page=100&page={1}"
@@ -143,8 +143,8 @@ class GitLab:
 
     def get_user_projects(self):
         """
-
-        :return:
+        Gets projects related to user based on user id
+        :return: array of dictionaries containing project details
         """
         if not self.user_id:
             self.get_user_id()
@@ -172,9 +172,9 @@ class GitLab:
 
     def get_project_id(self, project_name):
         """
-
-        :param project_name:
-        :return:
+        Gets project id based on project name
+        :param project_name: string containing project name
+        :return: project id of type integer
         """
         if not self.user_id:
             self.get_user_id()
@@ -213,9 +213,9 @@ class GitLab:
 
     def get_branches(self, project_id):
         """
-
-        :param project_id:
-        :return:
+        Gets branches based on the project id
+        :param project_id: integer containing project id
+        :return: array of dictionaries containing branch details
         """
         branches = []
         page = 1
@@ -239,12 +239,12 @@ class GitLab:
 
         return branches
 
-    def get_project_files(self, project_id, branch="master"):
+    def get_all_project_files(self, project_id, branch="master"):
         """
-
-        :param project_id:
-        :param branch:
-        :return:
+        Gets files related to the project id
+        :param project_id: integer containing project id
+        :param branch: string containing the branch name from which the files are to be fetched
+        :return: array of dictionaries containing details regarding project files
         """
         project_files = []
         page = 1
@@ -268,13 +268,50 @@ class GitLab:
 
         return project_files
 
+    def get_project_files(self, project_id, path, branch="master"):
+        """
+        Gets files related to the project id and path
+        :param path: string containing path from which files are to be retrieved
+        :param project_id: integer containing project id
+        :param branch: string containing the branch name from which the files are to be fetched
+        :return: array of dictionaries containing details regarding project files
+        """
+        project_files = []
+        page = 1
+        api = self.api_url + "projects/{0}/repository/tree?ref={1}&recursive=1&per_page=100&page={2}"
+        headers = {
+            'Private-Token': self.access_token,
+            "Content-Type": "application/json"
+        }
+        while True:
+            url = api.format(project_id, branch, page)
+            data = requests.get(url=url, headers=headers)
+            if data.ok:
+                data = data.json()
+            else:
+                break
+            if data:
+                project_files += data
+            else:
+                break
+            page += 1
+
+        files = []
+        path = path.strip("/")
+        path_len = len(path)
+        for file in project_files:
+            if file["type"] == "blob" and file["path"][:path_len] == path:
+                files.append(file)
+
+        return files
+
     def get_file_raw(self, project_id, path, branch="master"):
         """
-
-        :param project_id:
-        :param path:
-        :param branch:
-        :return:
+        Gets raw content from the given file path
+        :param project_id: integer containing project id
+        :param path: string containing the path to the file for which the raw content is to be fetched
+        :param branch: string containing the branch name from which the files are to be fetched
+        :return: string containing raw file data
         """
         project_file_raw = None
         api = self.api_url + "projects/{0}/repository/files/{1}/raw?ref={2}"
@@ -298,13 +335,14 @@ def main():
 
     :return:
     """
-    gl = GitLab(user_name="username", access_token="access_token")
+    gl = GitLab(user_name="vishnu2981997", access_token="access_token")
     user_id = gl.get_user_id()
     projects = gl.get_user_projects()
-    project_id = gl.get_project_id(project_name="project_name")
+    project_id = gl.get_project_id(project_name="wasup_bro")
     project_branches = gl.get_branches(project_id=project_id)
-    files = gl.get_project_files(project_id=project_id)
-    file_content = gl.get_file_raw(project_id=project_id, path="path to file eg: test/foo.txt")
+    project_files = gl.get_all_project_files(project_id=project_id, branch="master")
+    file_content = gl.get_file_raw(project_id=project_id, path="booo/booo_file_1.py", branch="master")
+    files = gl.get_project_files(project_id=project_id, path="/booo/", branch="master")
 
 
 if __name__ == "__main__":
