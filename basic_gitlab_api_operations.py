@@ -324,7 +324,7 @@ def main():
     main
     :return: None
     """
-    gl = GitLab(user_name="vishnu2981997", access_token="V7jVuqNWUssibj4gF4j6")
+    gl = GitLab(user_name="vishnu2981997", access_token="access_token")
     user_id = gl.get_user_id()
     projects = gl.get_user_projects()
     project_id = gl.get_project_id(project_name="wasup_bro")
